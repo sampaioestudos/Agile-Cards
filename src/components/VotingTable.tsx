@@ -79,6 +79,22 @@ export function VotingTable() {
     return acc;
   }, {} as Record<string, number[]>);
 
+  const groupedUsers = users.reduce((acc, user) => {
+    if (!acc[user.role]) acc[user.role] = [];
+    acc[user.role].push(user);
+    return acc;
+  }, {} as Record<string, typeof users>);
+
+  const ROLE_ORDER = ['DEV', 'QA', 'PO', 'SME', 'SM'];
+  const sortedRoles = Object.keys(groupedUsers).sort((a, b) => {
+    const indexA = ROLE_ORDER.indexOf(a);
+    const indexB = ROLE_ORDER.indexOf(b);
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
@@ -115,24 +131,25 @@ export function VotingTable() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-sm min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="w-full max-w-2xl bg-emerald-600 rounded-full h-48 sm:h-64 flex items-center justify-center shadow-inner relative border-8 border-emerald-800 z-10">
+            <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-sm min-h-[500px] sm:min-h-[600px] flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="w-full max-w-xl bg-emerald-600 rounded-full h-48 sm:h-64 flex items-center justify-center shadow-inner relative border-8 border-emerald-800 z-10">
                 {room.is_revealed ? (
                   <div className="text-white text-center">
                     <p className="text-xl font-medium mb-4">Averages</p>
                     <div className="flex flex-wrap justify-center gap-4 px-4">
-                      {Object.entries(votesByRole).map(([role, votes]) => {
+                      {['DEV', 'QA'].map((role) => {
+                        const votes = votesByRole[role] || [];
                         if (votes.length === 0) return null;
                         const avg = votes.reduce((a, b) => a + b, 0) / votes.length;
                         return (
-                          <div key={role} className="bg-emerald-800/50 px-4 py-2 rounded-xl border border-emerald-500/30">
-                            <p className="text-xs font-medium opacity-80 mb-1">{role}</p>
-                            <p className="text-3xl font-bold">{customRound(avg)}</p>
+                          <div key={role} className="bg-emerald-800/50 px-6 py-3 rounded-xl border border-emerald-500/30">
+                            <p className="text-sm font-medium opacity-80 mb-1">{role}</p>
+                            <p className="text-4xl font-bold">{customRound(avg)}</p>
                           </div>
                         );
                       })}
-                      {Object.values(votesByRole).every(v => v.length === 0) && (
-                        <p className="text-emerald-200">No numeric votes cast</p>
+                      {(!votesByRole['DEV']?.length && !votesByRole['QA']?.length) && (
+                        <p className="text-emerald-200">No DEV/QA votes cast</p>
                       )}
                     </div>
                   </div>
@@ -141,26 +158,38 @@ export function VotingTable() {
                 )}
               </div>
 
-              <div className="absolute inset-0 pointer-events-none flex flex-wrap justify-center items-center gap-4 sm:gap-8 p-4 z-20">
-                {users.map((user) => (
-                  <div key={user.id} className="flex flex-col items-center transform transition-all duration-500">
-                    <div className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg shadow-md flex items-center justify-center text-lg font-bold transition-all duration-300 ${
-                      user.vote 
-                        ? room.is_revealed 
-                          ? 'bg-white text-slate-800 border-2 border-slate-200 scale-110' 
-                          : 'bg-indigo-500 text-transparent border-2 border-indigo-600' 
-                        : 'bg-slate-100 border-2 border-dashed border-slate-300'
-                    }`}>
-                      {room.is_revealed && user.vote ? user.vote : ''}
+              <div className="absolute inset-0 pointer-events-none z-20">
+                {users.map((user, index) => {
+                  const angle = (index / users.length) * 2 * Math.PI - Math.PI / 2;
+                  const rx = 40; // x radius in %
+                  const ry = 38; // y radius in %
+                  const left = 50 + rx * Math.cos(angle);
+                  const top = 50 + ry * Math.sin(angle);
+
+                  return (
+                    <div 
+                      key={user.id} 
+                      className="absolute flex flex-col items-center transform transition-all duration-500"
+                      style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+                    >
+                      <div className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg shadow-md flex items-center justify-center text-lg font-bold transition-all duration-300 ${
+                        user.vote 
+                          ? room.is_revealed 
+                            ? 'bg-white text-slate-800 border-2 border-slate-200 scale-110' 
+                            : 'bg-indigo-500 text-transparent border-2 border-indigo-600' 
+                          : 'bg-slate-100 border-2 border-dashed border-slate-300'
+                      }`}>
+                        {room.is_revealed && user.vote ? user.vote : ''}
+                      </div>
+                      <div className="mt-2 flex flex-col items-center">
+                        <p className="text-xs font-medium bg-white/90 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-slate-100 whitespace-nowrap">
+                          {user.name}
+                        </p>
+                        <span className="text-[10px] font-bold text-indigo-600 mt-0.5 bg-white/80 px-1 rounded">{user.role}</span>
+                      </div>
                     </div>
-                    <div className="mt-2 flex flex-col items-center">
-                      <p className="text-xs font-medium bg-white/90 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-slate-100">
-                        {user.name}
-                      </p>
-                      <span className="text-[10px] font-bold text-indigo-600 mt-0.5">{user.role}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -214,20 +243,26 @@ export function VotingTable() {
                 <h2 className="text-lg font-semibold text-slate-800">Participants</h2>
                 <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-sm font-medium">{users.length}</span>
               </div>
-              <ul className="space-y-3">
-                {users.map((user) => (
-                  <li key={user.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${user.vote ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                      <span className="font-medium text-slate-700">{user.name}</span>
-                      <span className="text-[10px] font-bold px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md">{user.role}</span>
-                    </div>
-                    {room.is_revealed && user.vote && (
-                      <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-md">{user.vote}</span>
-                    )}
-                  </li>
+              <div className="space-y-6">
+                {sortedRoles.map(role => (
+                  <div key={role}>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">{role}</h3>
+                    <ul className="space-y-2">
+                      {groupedUsers[role].map((user) => (
+                        <li key={user.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${user.vote ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                            <span className="font-medium text-slate-700">{user.name}</span>
+                          </div>
+                          {room.is_revealed && user.vote && (
+                            <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-md">{user.vote}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </div>
         </div>
