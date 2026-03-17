@@ -1,15 +1,18 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { formatName } from '../utils/formatName';
 import { Role } from '../types';
 import { cn } from '../utils/cn';
 
 export function JoinRoom() {
+  const [searchParams] = useSearchParams();
+  const initialRoomId = searchParams.get('room') || '';
+
   const [name, setName] = useState('');
   const [role, setRole] = useState<Role>('DEV');
-  const [roomId, setRoomId] = useState('');
-  const [isCreating, setIsCreating] = useState(true);
+  const [roomId, setRoomId] = useState(initialRoomId);
+  const [isCreating, setIsCreating] = useState(!initialRoomId);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 

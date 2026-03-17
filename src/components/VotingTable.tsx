@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Copy, Check } from 'lucide-react';
 import { useRoom } from '../hooks/useRoom';
 import { supabase } from '../lib/supabase';
 import { Card } from './Card';
@@ -13,16 +14,17 @@ export function VotingTable() {
   const navigate = useNavigate();
   const { room, users, loading } = useRoom(roomId!);
   const [currentUser, setCurrentUser] = useState<UserWithVote | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('scrum_poker_user');
     if (!storedUser) {
-      navigate('/');
+      navigate(`/?room=${roomId}`);
       return;
     }
     const parsedUser = JSON.parse(storedUser);
     if (parsedUser.room_id !== roomId) {
-      navigate('/');
+      navigate(`/?room=${roomId}`);
       return;
     }
     setCurrentUser(parsedUser);
@@ -62,6 +64,13 @@ export function VotingTable() {
     await supabase.from('rooms').update({ is_revealed: false }).eq('id', roomId);
   };
 
+  const handleCopyLink = () => {
+    const url = `https://agilecards.netlify.app/room/${roomId}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const votesByRole = users.reduce((acc, user) => {
     if (!acc[user.role]) acc[user.role] = [];
     if (user.vote && !isNaN(Number(user.vote))) {
@@ -76,7 +85,16 @@ export function VotingTable() {
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-white p-4 rounded-xl shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">{room.name}</h1>
-            <p className="text-sm text-slate-500 font-mono mt-1">ID: {roomId}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-slate-500 font-mono">ID: {roomId}</p>
+              <button
+                onClick={handleCopyLink}
+                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                title="Copy invite link"
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
             <div className="text-left sm:text-right">
