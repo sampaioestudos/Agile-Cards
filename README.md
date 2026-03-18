@@ -1,4 +1,4 @@
-# Scrum Poker App
+# Agile Cards
 
 A real-time Scrum Poker (Planning Poker) application built with React, TypeScript, Tailwind CSS, and Supabase. This tool helps agile teams estimate their tasks efficiently and collaboratively.
 
