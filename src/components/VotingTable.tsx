@@ -129,7 +129,8 @@ export function VotingTable() {
               <p className="text-sm text-indigo-600 font-semibold">{currentUser.role}</p>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
+                await supabase.from('users').delete().eq('id', currentUser.id);
                 localStorage.removeItem('scrum_poker_user');
                 navigate('/');
               }}

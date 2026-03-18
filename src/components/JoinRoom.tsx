@@ -12,7 +12,25 @@ export function JoinRoom() {
   const [name, setName] = useState('');
   const [role, setRole] = useState<Role>('DEV');
   const [roomId, setRoomId] = useState(initialRoomId);
+
   const [isCreating, setIsCreating] = useState(!initialRoomId);
+
+  useEffect(() => {
+    const prefs = localStorage.getItem('scrum_poker_prefs');
+    if (prefs) {
+      try {
+        const parsed = JSON.parse(prefs);
+        if (parsed.name) setName(parsed.name);
+        if (parsed.role) setRole(parsed.role);
+        if (parsed.lastRoomId && !initialRoomId) {
+          setRoomId(parsed.lastRoomId);
+          setIsCreating(false);
+        }
+      } catch (e) {
+        console.error('Error parsing prefs', e);
+      }
+    }
+  }, [initialRoomId]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -51,6 +69,7 @@ export function JoinRoom() {
       if (userError) throw userError;
 
       localStorage.setItem('scrum_poker_user', JSON.stringify(user));
+      localStorage.setItem('scrum_poker_prefs', JSON.stringify({ name, role, lastRoomId: targetRoomId }));
       navigate(`/room/${targetRoomId}`);
     } catch (error) {
       console.error('Error joining room:', error);
