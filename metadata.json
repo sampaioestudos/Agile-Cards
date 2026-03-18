@@ -1,5 +1,5 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Scrum Poker App",
+  "description": "A real-time Scrum Poker (Planning Poker) application for agile teams to estimate tasks collaboratively. Built with React, Tailwind CSS, and Supabase.",
   "requestFramePermissions": []
 }
