@@ -12,7 +12,7 @@ const CARDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '14', '1
 export function VotingTable() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
-  const { room, users, loading } = useRoom(roomId!);
+  const { room, users, loading, clearVotes, removeVote, setVote } = useRoom(roomId!);
   const [currentUser, setCurrentUser] = useState<UserWithVote | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -41,8 +41,13 @@ export function VotingTable() {
     if (room.is_revealed) return;
     
     if (currentVote === value) {
-      await supabase.from('votes').delete().match({ room_id: roomId, user_id: currentUser.id });
+      // Optimistic unvote
+      removeVote(currentUser.id);
+      const { error } = await supabase.from('votes').delete().match({ room_id: roomId, user_id: currentUser.id });
+      if (error) console.error('Error removing vote:', error);
     } else {
+      // Optimistic vote
+      setVote(currentUser.id, value);
       const { error } = await supabase.from('votes').upsert({
         room_id: roomId,
         user_id: currentUser.id,
@@ -60,8 +65,14 @@ export function VotingTable() {
 
   const handleReset = async () => {
     if (!canManageRound) return;
-    await supabase.from('votes').delete().eq('room_id', roomId);
-    await supabase.from('rooms').update({ is_revealed: false }).eq('id', roomId);
+    
+    // Optimistic UI update
+    clearVotes();
+    
+    const { error: deleteError } = await supabase.from('votes').delete().eq('room_id', roomId);
+    if (deleteError) console.error('Error deleting votes:', deleteError);
+    const { error: updateError } = await supabase.from('rooms').update({ is_revealed: false }).eq('id', roomId);
+    if (updateError) console.error('Error updating room:', updateError);
   };
 
   const handleCopyLink = () => {
