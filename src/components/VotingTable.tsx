@@ -7,7 +7,7 @@ import { Card } from './Card';
 import { UserWithVote } from '../types';
 import { customRound } from '../utils/customRound';
 
-const CARDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '14', '16', '18', '20', '21', '24', '30', '32', '35', '36', '40'];
+const CARDS = ['1', '2', '4', '5', '6', '7', '8', '9', '10', '12', '14', '16', '18', '20', '21', '24', '30', '32', '35', '36', '40'];
 
 export function VotingTable() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -95,6 +95,15 @@ export function VotingTable() {
     acc[user.role].push(user);
     return acc;
   }, {} as Record<string, typeof users>);
+
+  Object.keys(groupedUsers).forEach(role => {
+    groupedUsers[role].sort((a, b) => {
+      if (!a.vote && !b.vote) return a.name.localeCompare(b.name);
+      if (!a.vote) return 1;
+      if (!b.vote) return -1;
+      return Number(a.vote) - Number(b.vote);
+    });
+  });
 
   const ROLE_ORDER = ['DEV', 'QA', 'PO', 'SME', 'SM'];
   const sortedRoles = Object.keys(groupedUsers).sort((a, b) => {
