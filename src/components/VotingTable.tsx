@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Trash2 } from 'lucide-react';
 import { useRoom } from '../hooks/useRoom';
 import { supabase } from '../lib/supabase';
 import { Card } from './Card';
@@ -80,6 +80,12 @@ export function VotingTable() {
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRemoveUser = async (userId: string) => {
+    if (!canManageRound) return;
+    const { error } = await supabase.from('users').delete().eq('id', userId);
+    if (error) console.error('Error removing user:', error);
   };
 
   const votesByRole = users.reduce((acc, user) => {
@@ -275,9 +281,20 @@ export function VotingTable() {
                             <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${user.vote ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                             <span className="font-medium text-slate-700">{user.name}</span>
                           </div>
-                          {room.is_revealed && user.vote && (
-                            <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-md">{user.vote}</span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {room.is_revealed && user.vote && (
+                              <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-md">{user.vote}</span>
+                            )}
+                            {canManageRound && user.id !== currentUser.id && (
+                              <button
+                                onClick={() => handleRemoveUser(user.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Remove participant"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ul>
