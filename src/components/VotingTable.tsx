@@ -30,6 +30,28 @@ export function VotingTable() {
     setCurrentUser(parsedUser);
   }, [roomId, navigate]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleBeforeUnload = () => {
+      // Use keepalive to ensure the request completes even if the tab closes
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://oragtyuyaschfbicgrbj.supabase.co';
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_LJki0EuI1GPFWFRl6Y148A_8tsnR53r';
+      
+      fetch(`${supabaseUrl}/rest/v1/users?id=eq.${currentUser.id}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        keepalive: true
+      }).catch(console.error);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentUser]);
+
   if (loading || !room || !currentUser) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-medium text-slate-500">Loading room...</div></div>;
   }
