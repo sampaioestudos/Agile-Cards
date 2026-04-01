@@ -60,8 +60,6 @@ export function VotingTable() {
   const currentVote = users.find((u) => u.id === currentUser.id)?.vote;
 
   const handleVote = async (value: string) => {
-    if (room.is_revealed) return;
-    
     if (currentVote === value) {
       // Optimistic unvote
       removeVote(currentUser.id);
@@ -251,7 +249,6 @@ export function VotingTable() {
                     value={card}
                     selected={currentVote === card}
                     onClick={() => handleVote(card)}
-                    disabled={room.is_revealed}
                   />
                 ))}
               </div>
