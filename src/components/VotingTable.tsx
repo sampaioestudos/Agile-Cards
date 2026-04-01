@@ -27,7 +27,30 @@ export function VotingTable() {
       navigate(`/?room=${roomId}`);
       return;
     }
-    setCurrentUser(parsedUser);
+
+    const verifyAndSetUser = async () => {
+      const { data, error } = await supabase.from('users').select('id').eq('id', parsedUser.id).single();
+      
+      if (error || !data) {
+        // User was deleted (e.g., via beforeunload), recreate them
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({ room_id: roomId, name: parsedUser.name, role: parsedUser.role })
+          .select()
+          .single();
+          
+        if (!insertError && newUser) {
+          localStorage.setItem('scrum_poker_user', JSON.stringify(newUser));
+          setCurrentUser(newUser);
+        } else {
+          navigate(`/?room=${roomId}`);
+        }
+      } else {
+        setCurrentUser(parsedUser);
+      }
+    };
+
+    verifyAndSetUser();
   }, [roomId, navigate]);
 
   useEffect(() => {
