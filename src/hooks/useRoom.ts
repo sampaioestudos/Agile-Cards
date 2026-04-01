@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Room, User, Vote, UserWithVote } from '../types';
 
-export function useRoom(roomId: string) {
+export function useRoom(roomId: string, currentUserId?: string) {
   const [room, setRoom] = useState<Room | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
+  const [presentUsers, setPresentUsers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [prevRevealed, setPrevRevealed] = useState<boolean | null>(null);
 
@@ -38,7 +39,24 @@ export function useRoom(roomId: string) {
     fetchInitialData();
 
     const roomSub = supabase
-      .channel(`room:${roomId}`)
+      .channel(`room:${roomId}`, {
+        config: {
+          presence: {
+            key: currentUserId || 'anonymous',
+          },
+        },
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const newState = roomSub.presenceState();
+        const activeUserIds = new Set<string>();
+        for (const key in newState) {
+          const presences = newState[key] as any[];
+          presences.forEach((p) => {
+            if (p.user_id) activeUserIds.add(p.user_id);
+          });
+        }
+        setPresentUsers(activeUserIds);
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, (payload) => {
         setRoom(payload.new as Room);
       })
@@ -67,15 +85,21 @@ export function useRoom(roomId: string) {
           setVotes((prev) => prev.map((v) => (v.id === payload.new.id ? (payload.new as Vote) : v)));
         }
       })
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED' && currentUserId) {
+          await roomSub.track({ user_id: currentUserId });
+        }
+      });
 
     return () => {
       supabase.removeChannel(roomSub);
     };
-  }, [roomId]);
+  }, [roomId, currentUserId]);
 
-  const usersWithVotes: UserWithVote[] = users.map((user) => {
-    const userVote = votes.find((v) => v.user_id === user.id);
+  const usersWithVotes: UserWithVote[] = users
+    .filter((user) => presentUsers.has(user.id) || user.id === currentUserId)
+    .map((user) => {
+      const userVote = votes.find((v) => v.user_id === user.id);
     return {
       ...user,
       vote: userVote?.value || null,

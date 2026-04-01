@@ -12,8 +12,8 @@ const CARDS = ['1', '2', '4', '5', '6', '7', '8', '9', '10', '12', '14', '16', '
 export function VotingTable() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
-  const { room, users, loading, clearVotes, removeVote, setVote } = useRoom(roomId!);
   const [currentUser, setCurrentUser] = useState<UserWithVote | null>(null);
+  const { room, users, loading, clearVotes, removeVote, setVote } = useRoom(roomId!, currentUser?.id);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
